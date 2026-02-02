@@ -84,7 +84,14 @@ jobs:
       run: |
         cd openwrt
         chmod +x $GITHUB_WORKSPACE/$DIY_SH && $GITHUB_WORKSPACE/$DIY_SH
-        ./scripts/feeds update -a && ./scripts/feeds install -a
+        # Retry feeds update up to 3 times to handle network issues
+        for i in {1..3}; do ./scripts/feeds update -a && break || sleep 5; done
+
+        # 修复 Rust 编译 (禁用 CI LLVM 下载，防止 404 错误)
+        # 使用更为鲁棒的正则表达式匹配
+        [ -f feeds/packages/lang/rust/Makefile ] && sed -i 's/download-ci-llvm.*=.*true/download-ci-llvm=false/g' feeds/packages/lang/rust/Makefile
+
+        ./scripts/feeds install -a
 
     - name: 集成 HD2312 驱动
       run: |
