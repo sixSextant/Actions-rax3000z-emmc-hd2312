@@ -32,6 +32,8 @@ env:
   FREE_DISK_SH: scripts/free_disk_space.sh
   ENV_SH: scripts/environment.sh
   DIY_SH: scripts/diy.sh
+  XR30_SH: scripts/xr30-adaptation.sh
+  HD2312_SH: scripts/hd2312-integration.sh
   CLASH_CORE: scripts/preset-clash-core.sh
   UPLOAD_BIN_DIR: false
   UPLOAD_FIRMWARE: false
@@ -86,44 +88,13 @@ jobs:
 
     - name: 集成 HD2312 驱动
       run: |
-        git clone https://github.com/hanwckf/hd2312
-        cp hd2312/openwrt/dvb.mk openwrt/package/kernel/linux/modules/dvb.mk
-        mkdir -p openwrt/package/hd2312
-        cp hd2312/openwrt/Makefile openwrt/package/hd2312/Makefile
-        cat hd2312/openwrt/dvb-kconfig >> openwrt/target/linux/generic/config-6.6
+        cd openwrt
+        chmod +x $GITHUB_WORKSPACE/$HD2312_SH && $GITHUB_WORKSPACE/$HD2312_SH
 
     - name: 集成 XR30 适配 (来自 Kiddin9)
       run: |
         cd openwrt
-        # 下载 DTS 文件
-        curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts -o target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts
-        curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30.dts -o target/linux/mediatek/dts/mt7981b-cmcc-xr30.dts
-        curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30.dtsi -o target/linux/mediatek/dts/mt7981b-cmcc-xr30.dtsi
-        sed -i 's/mt7981b.dtsi/mt7981.dtsi/' target/linux/mediatek/dts/mt7981b-cmcc-xr30.dtsi
-
-        # 修改 02_network
-        sed -i 's/cmcc,rax3000m|/cmcc,rax3000m*|\\\n\tcmcc,xr30*|/' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-
-        # 修改 filogic.mk
-        cat >> target/linux/mediatek/image/filogic.mk <<EOF
-
-define Device/cmcc_xr30-emmc
-  DEVICE_VENDOR := CMCC
-  DEVICE_MODEL := XR30 eMMC (RAX3000Z增强版)
-  DEVICE_DTS := mt7981b-cmcc-xr30-emmc
-  DEVICE_DTS_DIR := ../dts
-  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 \\
-	e2fsprogs f2fsck mkf2fs losetup kmod-fs-f2fs kmod-mmc
-  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
-  ARTIFACTS := emmc-preloader.bin emmc-bl31-uboot.fip
-  ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4
-  ARTIFACT/emmc-bl31-uboot.fip := mt7981-bl31-uboot cmcc_xr30-emmc
-endef
-TARGET_DEVICES += cmcc_xr30-emmc
-EOF
-
-        # 修改 platform.sh 以支持 sysupgrade
-        sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+        chmod +x $GITHUB_WORKSPACE/$XR30_SH && $GITHUB_WORKSPACE/$XR30_SH
 
     - name: 导入补丁和配置
       run: |
