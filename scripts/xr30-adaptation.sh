@@ -13,12 +13,12 @@ curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_f
 sed -i 's/mt7981b.dtsi/mt7981.dtsi/' $DTS_PATH/mt7981b-cmcc-xr30.dtsi
 
 # Update board definitions for network and sysupgrade
-# Use robust glob matching to support both -emmc and -nand variants
+# Use precise compatible string 'cmcc,xr30-emmc' to avoid confusion with NAND versions
 # 02_network
-sed -i 's/cmcc,rax3000m/cmcc,rax3000m*|cmcc,xr30*/g' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+sed -i 's/cmcc,rax3000m/cmcc,rax3000m|cmcc,xr30-emmc/g' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 
 # platform.sh
-sed -i 's/cmcc,rax3000m/cmcc,rax3000m*|cmcc,xr30*/g' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+sed -i 's/cmcc,rax3000m/cmcc,rax3000m|cmcc,xr30-emmc/g' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
 
 # Add XR30 eMMC device definition to filogic.mk
 # We match RAX3000M's common configuration for ImmortalWrt 24.10
