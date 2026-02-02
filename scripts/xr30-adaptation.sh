@@ -27,10 +27,11 @@ define Device/cmcc_xr30-emmc
   DEVICE_VENDOR := CMCC
   DEVICE_MODEL := XR30 eMMC (RAX3000Z增强版)
   DEVICE_DTS := mt7981b-cmcc-xr30-emmc
+  DEVICE_DTS_OVERLAY :=
   \$(call Device/cmcc_rax3000m_common)
   ARTIFACTS += emmc-preloader.bin emmc-bl31-uboot.fip
   ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4
-  ARTIFACT/emmc-bl31-uboot.fip := mt7981-bl31-uboot cmcc_xr30-emmc
+  ARTIFACT/emmc-bl31-uboot.fip := mt7981-bl31-uboot cmcc_rax3000m-emmc
 endef
 TARGET_DEVICES += cmcc_xr30-emmc
 EOF

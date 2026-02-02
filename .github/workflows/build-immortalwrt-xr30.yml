@@ -84,7 +84,9 @@ jobs:
       run: |
         cd openwrt
         chmod +x $GITHUB_WORKSPACE/$DIY_SH && $GITHUB_WORKSPACE/$DIY_SH
-        ./scripts/feeds update -a && ./scripts/feeds install -a
+        # Retry feeds update up to 3 times to handle network issues
+        for i in {1..3}; do ./scripts/feeds update -a && break || sleep 5; done
+        ./scripts/feeds install -a
 
     - name: 集成 HD2312 驱动
       run: |
