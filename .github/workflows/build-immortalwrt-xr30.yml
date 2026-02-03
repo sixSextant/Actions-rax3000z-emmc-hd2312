@@ -117,11 +117,20 @@ jobs:
         sed -i '/case "$board" in/a \        cmcc,xr30-emmc)\n                cp /lib/firmware/mediatek/nx30pro_eeprom.bin /lib/firmware/$FIRMWARE\n                ;;' openwrt/target/linux/mediatek/filogic/base-files/etc/hotplug.d/firmware/11-mt76-caldata
 
     - name: 设置 dts 闪存频率
-      if: env.USE_52MHZ == 'true'
       run: |
-        sed -i -e '/bus-width = <8>;/ a\	cap-mmc-highspeed;' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts
-        sed -i 's/26000000/52000000/g' openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts
-        grep max-frequency openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts
+        DTS_FILE="openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts"
+        if [ "${{ github.event.inputs.USE_52MHZ }}" = "true" ]; then
+          # 确保是 52MHz
+          sed -i 's/26000000/52000000/g' $DTS_FILE
+          # 确保有 cap-mmc-highspeed
+          grep -q "cap-mmc-highspeed;" $DTS_FILE || sed -i '/bus-width = <8>;/ a\	cap-mmc-highspeed;' $DTS_FILE
+        else
+          # 强制降频到 26MHz (处理 Kiddin9 DTS 默认 52MHz 的情况)
+          sed -i 's/52000000/26000000/g' $DTS_FILE
+          # 移除高速标志
+          sed -i '/cap-mmc-highspeed;/d' $DTS_FILE
+        fi
+        grep max-frequency $DTS_FILE
 
     - name: 下载文件
       run: |
@@ -160,6 +169,7 @@ jobs:
         rm -rf *.json
         rm -rf *.manifest
         rm -rf packages
+        rm -rf *ram-*-bl2.bin
         echo "FIRMWARE=$PWD" >> $GITHUB_ENV
         echo "status=success" >> $GITHUB_OUTPUT
 
