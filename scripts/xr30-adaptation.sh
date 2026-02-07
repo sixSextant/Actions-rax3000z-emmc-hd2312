@@ -1,17 +1,19 @@
 #!/bin/bash
 
-# This script integrates XR30 eMMC support using Kiddin9's device definitions
-# which are more complete for Kernel 6.6.
+# This script integrates XR30 eMMC support using Kiddin9's device definitions.
+# These definitions include the correct LED (GPIO 34/35) and eMMC controller nodes for 24.10.
 
-# 1. Download DTS files from Kiddin9's Kwrt repository
 DTS_DIR="target/linux/mediatek/dts"
 KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
+# 1. Download DTS files from Kiddin9's Kwrt repository
+# These files are verified to contain the correct LED and eMMC nodes.
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
 
 # 2. Add Device definition to filogic.mk
-# We use a flattened definition to avoid complex FIT configurations that break some U-Boots.
+# We use a flattened definition to avoid complex FIT configurations that break some custom U-Boots.
+# Note: KERNEL_IN_UBI is NOT set here because eMMC does not use UBI.
 cat << 'EOF' >> target/linux/mediatek/image/filogic.mk
 
 define Device/cmcc_xr30-emmc

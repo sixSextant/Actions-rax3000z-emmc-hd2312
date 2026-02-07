@@ -18,9 +18,10 @@
 在 Actions 选择对应的编译工作流（如 `Build ImmortalWrt for XR30 with HD2312`）手动点击 Run workflow 执行编译，等待固件编译完成上传至 releases 发布即可下载
 
 ### 配置说明
+- 默认 LAN IP 已更改为 `192.168.6.1`，可在 `scripts/diy.sh` 处修改
 
-- 需要取消集成或添加其他软件包可在 `configs/rax3000z-emmc.config` 处参考注释内容自行修改或添加配置选项
-- 默认修改dtsi文件，以适配rax3000z增强版（xr30-emmc）白色投影LED，投影led才是灵魂！
+- 需要取消集成或添加其他软件包可在 `configs/xr30-emmc.config` 处参考注释内容自行修改或添加配置选项
+- 默认在编译脚本中自动适配 CMCC XR30 (eMMC) 专用的 DTS，以确保白色投影 LED 灯运作正常。
 - 默认构建 eeprom 替换为 H3C NX30 Pro 提取版本（来自 [237大佬](https://www.right.com.cn/forum/?364126) 提取）以增大无线功率，**原厂 eeprom 无线信号 2.4G: 23dBm, 5G: 22dBm；替换 nx30pro_eeprom 后 2.4G: 25dBm, 5G: 24dBm**。如需恢复使用默认 eeprom 请在 Run workflow 时取消勾选 “Use nx30pro eeprom”，或在 workflow 配置文件中将 `USE_NX30PRO_EEPROM` 中 `default: true` 的 true 改为 false，重新编译刷入使用  
   > eMMC 设备读取 eeprom 方式与 nand 闪存设备不同，所以修改方式也不同。其他设备包括 CMCC RAX3000M nand 版本若希望使用高功率 eeprom 可直接改用 237 的 https://github.com/padavanonly/immortalwrt-mt798x 仓库源码编译，或参考 https://github.com/padavanonly/immortalwrt-mt798x/commit/32ccfa4af7cd8eb6193c0394a06f5d32ac49c1f7 进行修改
 
