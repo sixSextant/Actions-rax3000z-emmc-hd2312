@@ -1,39 +1,39 @@
 #!/bin/bash
 
-# This script is called from the 'openwrt' directory
+# This script integrates XR30 eMMC support using Kiddin9's device definitions
+# which are more complete for Kernel 6.6.
 
-# Download DTS files from Kiddin9's Kwrt
-# These files are needed for the XR30 eMMC version to fix LEDs and eMMC support
-DTS_PATH="target/linux/mediatek/dts"
-curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts -o $DTS_PATH/mt7981b-cmcc-xr30-emmc.dts
-curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30.dts -o $DTS_PATH/mt7981b-cmcc-xr30.dts
-curl -sL https://raw.githubusercontent.com/kiddin9/Kwrt/25.12/devices/mediatek_filogic/diy/target/linux/mediatek/dts/mt7981b-cmcc-xr30.dtsi -o $DTS_PATH/mt7981b-cmcc-xr30.dtsi
+# 1. Download DTS files from Kiddin9's Kwrt repository
+DTS_DIR="target/linux/mediatek/dts"
+KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
-# Fix include path: Kwrt uses mt7981b.dtsi, ImmortalWrt 24.10 uses mt7981.dtsi
-sed -i 's/mt7981b.dtsi/mt7981.dtsi/' $DTS_PATH/mt7981b-cmcc-xr30.dtsi
+wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
+wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
 
-# Update board definitions for network and sysupgrade
-# Use precise matching with | to avoid mangling other variants like rax3000m-emmc
-# 02_network
-sed -i 's/cmcc,rax3000m|/cmcc,rax3000m|\\\n\tcmcc,xr30-emmc|/' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-
-# platform.sh
-sed -i 's/cmcc,rax3000m|/cmcc,rax3000m|\\\n\tcmcc,xr30-emmc|/' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
-
-# Add XR30 eMMC device definition to filogic.mk
-# We match RAX3000M's common configuration for ImmortalWrt 24.10
-# We explicitly set IMAGES and clear ARTIFACTS to avoid dependencies on external bootloader files (BL2/FIP)
-# which caused build failures in previous attempts.
-cat >> target/linux/mediatek/image/filogic.mk <<EOF
+# 2. Add Device definition to filogic.mk
+# We use a flattened definition to avoid complex FIT configurations that break some U-Boots.
+cat << 'EOF' >> target/linux/mediatek/image/filogic.mk
 
 define Device/cmcc_xr30-emmc
   DEVICE_VENDOR := CMCC
-  DEVICE_MODEL := XR30 eMMC (RAX3000Z增强版)
+  DEVICE_MODEL := XR30 (eMMC)
   DEVICE_DTS := mt7981b-cmcc-xr30-emmc
-  \$(call Device/cmcc_rax3000m_common)
-  DEVICE_DTS_OVERLAY :=
+  SUPPORTED_DEVICES := cmcc,xr30-emmc cmcc,rax3000m-emmc
+  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 automount f2fsck mkf2fs
+  KERNEL_LOADADDR := 0x44000000
+  KERNEL := kernel-bin | gzip
+  KERNEL_INITRAMFS := kernel-bin | gzip | fit gzip $$(KDIR)/image-$$(DEVICE_DTS).dtb
   IMAGES := sysupgrade.itb
-  ARTIFACTS :=
+  IMAGE/sysupgrade.itb := append-kernel | fit gzip $$(KDIR)/image-$$(DEVICE_DTS).dtb external-static-with-rootfs | append-metadata
+  ARTIFACTS += emmc-preloader.bin emmc-bl31-uboot.fip
+  ARTIFACT/emmc-preloader.bin := mt7981-bl2 emmc-ddr4
+  ARTIFACT/emmc-bl31-uboot.fip := mt7981-bl31-uboot cmcc_rax3000m-emmc
 endef
 TARGET_DEVICES += cmcc_xr30-emmc
 EOF
+
+# 3. Add runtime identification
+# 02_network
+sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+# platform.sh
+sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
