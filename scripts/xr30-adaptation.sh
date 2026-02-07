@@ -1,17 +1,89 @@
 #!/bin/bash
 
-# This script integrates XR30 eMMC support using Kiddin9's device definitions
-# which are more complete for Kernel 6.6.
+# This script integrates XR30 eMMC support using the user's provided DTS
+# and augmenting it with necessary eMMC boot nodes for 24.10.
 
-# 1. Download DTS files from Kiddin9's Kwrt repository
 DTS_DIR="target/linux/mediatek/dts"
-KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
+TARGET_DTS="${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts"
 
-wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
-wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
+# 1. Use the user's provided DTS as the base
+cp mt7981-cmcc-xr30-emmc.dtsi ${TARGET_DTS}
 
-# 2. Add Device definition to filogic.mk
-# We use a flattened definition to avoid complex FIT configurations that break some U-Boots.
+# 2. Add model and compatible identification (missing in the .dtsi)
+sed -i '/\/ {/a \	model = "CMCC XR30 (eMMC version)";\n	compatible = "cmcc,xr30-emmc", "mediatek,mt7981";' ${TARGET_DTS}
+
+# 3. Add the missing eMMC/MMC nodes required for 24.10 booting
+cat << 'EOF' >> ${TARGET_DTS}
+
+&mmc0 {
+	bus-width = <8>;
+	cap-mmc-highspeed;
+	max-frequency = <26000000>;
+	non-removable;
+	pinctrl-names = "default", "state_uhs";
+	pinctrl-0 = <&mmc0_pins_default>;
+	pinctrl-1 = <&mmc0_pins_uhs>;
+	vmmc-supply = <&reg_3p3v>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	card@0 {
+		compatible = "mmc-card";
+		reg = <0>;
+
+		block {
+			compatible = "block-device";
+
+			partitions {
+				block-partition-factory {
+					partname = "factory";
+
+					nvmem-layout {
+						compatible = "fixed-layout";
+						#address-cells = <1>;
+						#size-cells = <1>;
+
+						eeprom_factory_0: eeprom@0 {
+							reg = <0x0 0x1000>;
+						};
+
+						macaddr_factory_24: macaddr@24 {
+							reg = <0x24 0x6>;
+						};
+
+						macaddr_factory_2a: macaddr@2a {
+							reg = <0x2a 0x6>;
+						};
+					};
+				};
+			};
+		};
+	};
+};
+
+&pio {
+	mmc0_pins_default: mmc0-pins {
+		mux {
+			function = "flash";
+			groups = "emmc_45";
+		};
+	};
+
+	mmc0_pins_uhs: mmc0-uhs-pins {
+		mux {
+			function = "flash";
+			groups = "emmc_45";
+		};
+	};
+};
+
+&usb_phy {
+	status = "okay";
+};
+EOF
+
+# 4. Add the Device definition to filogic.mk
 cat << 'EOF' >> target/linux/mediatek/image/filogic.mk
 
 define Device/cmcc_xr30-emmc
@@ -32,8 +104,6 @@ endef
 TARGET_DEVICES += cmcc_xr30-emmc
 EOF
 
-# 3. Add runtime identification
-# 02_network
+# 5. Runtime identification
 sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
-# platform.sh
 sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
