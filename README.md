@@ -18,8 +18,6 @@
 在 Actions 选择对应的编译工作流（如 `Build ImmortalWrt for XR30 with HD2312`）手动点击 Run workflow 执行编译，等待固件编译完成上传至 releases 发布即可下载
 
 ### 配置说明
-- 默认 LAN IP 已更改为 `192.168.6.1`，可在 `scripts/diy.sh` 处修改
-
 - 需要取消集成或添加其他软件包可在 `configs/rax3000z-emmc.config` 处参考注释内容自行修改或添加配置选项
 - 默认修改dtsi文件，以适配rax3000z增强版（xr30-emmc）白色投影LED，投影led才是灵魂！
 - 默认构建 eeprom 替换为 H3C NX30 Pro 提取版本（来自 [237大佬](https://www.right.com.cn/forum/?364126) 提取）以增大无线功率，**原厂 eeprom 无线信号 2.4G: 23dBm, 5G: 22dBm；替换 nx30pro_eeprom 后 2.4G: 25dBm, 5G: 24dBm**。如需恢复使用默认 eeprom 请在 Run workflow 时取消勾选 “Use nx30pro eeprom”，或在 workflow 配置文件中将 `USE_NX30PRO_EEPROM` 中 `default: true` 的 true 改为 false，重新编译刷入使用  
