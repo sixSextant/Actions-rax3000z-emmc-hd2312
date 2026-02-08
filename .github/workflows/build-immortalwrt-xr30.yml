@@ -87,7 +87,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v4'
+        mixkey: 'openwrt24-cortexa53-v5'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -150,11 +150,6 @@ jobs:
         make download -j8 V=10
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
-
-    - name: 预编译 mac80211 (解决依赖问题)
-      run: |
-        cd openwrt
-        make package/kernel/mac80211/compile -j$(nproc)
 
     - name: 编译固件中
       id: compile
