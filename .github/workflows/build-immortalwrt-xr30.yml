@@ -65,23 +65,19 @@ jobs:
       run: |
         echo "USE_NX30PRO_EEPROM=${{ github.event.inputs.USE_NX30PRO_EEPROM }}" >> $GITHUB_ENV
         echo "USE_52MHZ=${{ github.event.inputs.USE_52MHZ }}" >> $GITHUB_ENV
-        chmod +x $FREE_DISK_SH && $FREE_DISK_SH
+        # 使用 maximize-build-space 时不建议再次手动清理，以免 IO 冲突或磁盘满载报错
+        # chmod +x $FREE_DISK_SH && $FREE_DISK_SH
         sudo -E apt-get -qq update -y
-        # 已移除 full-upgrade 以避免无关的 Snap/Firefox 更新报错
         chmod +x $ENV_SH && $ENV_SH
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
 
     - name: 检查空间使用情况
       if: (!cancelled())
       run: df -hT
 
     - name: 克隆源码
-      working-directory: /workdir
       run: |
         git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
 
     - name: 开启缓存
       uses: klever1988/cachewrtbuild@main
