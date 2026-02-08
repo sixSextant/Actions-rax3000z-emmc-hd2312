@@ -48,6 +48,17 @@ jobs:
     - name: 检查
       uses: actions/checkout@main
 
+    - name: Maximize build space
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 2048
+        swap-size-mb: 1
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+        remove-docker-images: 'true'
+
     - name: 初始化环境
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -77,7 +88,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v3'
+        mixkey: 'openwrt24-cortexa53-v4'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -140,6 +151,11 @@ jobs:
         make download -j8 V=10
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
+
+    - name: 预编译 mac80211 (解决依赖问题)
+      run: |
+        cd openwrt
+        make package/kernel/mac80211/compile -j$(nproc)
 
     - name: 编译固件中
       id: compile
