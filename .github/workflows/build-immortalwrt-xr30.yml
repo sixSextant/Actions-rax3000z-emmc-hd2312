@@ -45,9 +45,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: 检查
-      uses: actions/checkout@main
-
     - name: Maximize build space
       uses: easimon/maximize-build-space@master
       with:
@@ -59,6 +56,9 @@ jobs:
         remove-codeql: 'true'
         remove-docker-images: 'true'
 
+    - name: 检查
+      uses: actions/checkout@main
+
     - name: 初始化环境
       env:
         DEBIAN_FRONTEND: noninteractive
@@ -66,7 +66,6 @@ jobs:
         echo "USE_NX30PRO_EEPROM=${{ github.event.inputs.USE_NX30PRO_EEPROM }}" >> $GITHUB_ENV
         echo "USE_52MHZ=${{ github.event.inputs.USE_52MHZ }}" >> $GITHUB_ENV
         chmod +x $FREE_DISK_SH && $FREE_DISK_SH
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
         sudo -E apt-get -qq update -y
         # 已移除 full-upgrade 以避免无关的 Snap/Firefox 更新报错
         chmod +x $ENV_SH && $ENV_SH
