@@ -21,7 +21,7 @@ define Device/cmcc_xr30-emmc
   DEVICE_MODEL := XR30 (eMMC)
   DEVICE_DTS := mt7981b-cmcc-xr30-emmc
   SUPPORTED_DEVICES := cmcc,xr30-emmc cmcc,rax3000m-emmc
-  DEVICE_PACKAGES := kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 automount f2fsck mkf2fs
+  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware kmod-usb3 automount f2fsck mkf2fs
   KERNEL_LOADADDR := 0x44000000
   KERNEL := kernel-bin | gzip
   KERNEL_INITRAMFS := kernel-bin | gzip | fit gzip $$(KDIR)/image-$$(DEVICE_DTS).dtb
