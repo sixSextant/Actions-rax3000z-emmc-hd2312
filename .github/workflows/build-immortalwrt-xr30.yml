@@ -28,7 +28,7 @@ on:
 
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
-  REPO_BRANCH: openwrt-24.10
+  REPO_BRANCH: openwrt-24.10-6.6
   FREE_DISK_SH: scripts/free_disk_space.sh
   ENV_SH: scripts/environment.sh
   DIY_SH: scripts/diy.sh
@@ -101,7 +101,7 @@ jobs:
 
     - name: 调试：列出 DTS 文件
       run: |
-        ls -l openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30*
+        find openwrt/target/linux/mediatek/ -name "mt7981b-cmcc-xr30*"
 
     - name: 集成 HD2312 驱动
       run: |

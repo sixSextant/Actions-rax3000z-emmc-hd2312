@@ -1,23 +1,25 @@
 #!/bin/bash
 
-# This script integrates XR30 eMMC support.
-# Since we are using padavanonly/immortalwrt-mt798x-6.6,
-# it likely has a similar structure to the official ImmortalWrt.
+# This script integrates XR30 eMMC support for the padavanonly/immortalwrt-mt798x-6.6 source.
+# This source uses a kernel overlay directory structure for MT798x Kernel 6.6.
 
-DTS_DIR="target/linux/mediatek/dts"
-# We'll use the official Kiddin9 DTS as it's verified for LEDs.
+# Correct path for Kernel 6.6 DTS overlay in this repository
+DTS_DIR="target/linux/mediatek/files-6.6/arch/arm64/boot/dts/mediatek"
+mkdir -p $DTS_DIR
+
 KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
-echo "Downloading XR30 DTS files..."
+echo "Downloading XR30 DTS files to kernel overlay..."
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
 
-# Fix include in DTS if needed (sometimes Kiddin9 uses absolute-like includes)
-sed -i 's|#include "mt7981.dtsi"|#include <arm64/mediatek/mt7981.dtsi>|g' ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts 2>/dev/null || true
+# Adjust includes for the kernel source structure
+# In the kernel tree, mt7981.dtsi is in the same directory.
+sed -i 's|#include "mt7981.dtsi"|#include "mt7981.dtsi"|g' ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
+sed -i 's|#include <arm64/mediatek/mt7981.dtsi>|#include "mt7981.dtsi"|g' ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 
 # Add Device definition to filogic.mk
-# We append it to the end of the file.
-# Note: We REMOVE DEVICE_DTS_DIR to let it use the default (target/linux/mediatek/dts)
+# Since the DTS is now in the kernel tree, we don't need DEVICE_DTS_DIR.
 cat << 'EOF' >> target/linux/mediatek/image/filogic.mk
 
 define Device/cmcc_xr30-emmc
@@ -39,10 +41,8 @@ TARGET_DEVICES += cmcc_xr30-emmc
 EOF
 
 # Runtime identification
-# 02_network
 [ -f target/linux/mediatek/filogic/base-files/etc/board.d/02_network ] && \
 sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/etc/board.d/02_network
 
-# platform.sh
 [ -f target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh ] && \
 sed -i '/cmcc,rax3000m|/a \	cmcc,xr30-emmc|' target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
