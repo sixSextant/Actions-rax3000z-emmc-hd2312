@@ -45,9 +45,6 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: 检查
-      uses: actions/checkout@main
-
     - name: 扩展磁盘空间
       uses: easimon/maximize-build-space@master
       with:
@@ -57,6 +54,9 @@ jobs:
         remove-android: 'true'
         remove-haskell: 'true'
         remove-codeql: 'true'
+
+    - name: 检查
+      uses: actions/checkout@main
 
     - name: 初始化环境
       env:
