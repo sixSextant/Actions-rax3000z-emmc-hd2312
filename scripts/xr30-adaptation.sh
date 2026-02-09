@@ -4,11 +4,17 @@
 # which are more complete for Kernel 6.6.
 
 # 1. Download DTS files from Kiddin9's Kwrt repository
-DTS_DIR="target/linux/mediatek/dts"
+# For Kernel 6.6, we use the files-6.6 overlay directory
+DTS_DIR="target/linux/mediatek/files-6.6/arch/arm64/boot/dts/mediatek"
+mkdir -p $DTS_DIR
 KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
+
+# Patch include paths for Kernel 6.6 compatibility
+# Change local include to kernel-tree include
+sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' ${DTS_DIR}/*.dts*
 
 # 2. Add Device definition to filogic.mk
 # We use a flattened definition to avoid complex FIT configurations that break some U-Boots.
