@@ -77,7 +77,7 @@ jobs:
 
     - name: 克隆源码
       run: |
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
+        for i in {1..3}; do git clone $REPO_URL -b $REPO_BRANCH openwrt && break || sleep 5; done
 
     - name: 开启缓存
       uses: klever1988/cachewrtbuild@main
@@ -198,7 +198,8 @@ jobs:
           echo "- eeprom 未修改" >> release.txt
           eeprom_status="default_eeprom"
         fi
-        max_frequency=$(($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts) / 1000000))
+        max_frequency_val=$(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts || echo "26000000")
+        max_frequency=$((max_frequency_val / 1000000))
         echo "- 使用闪存频率: ${max_frequency}MHz" >> release.txt
         release_tag=$(date +"%Y.%m.%d-24.10-xr30-emmc-${eeprom_status}-${max_frequency}MHz")
         echo "release_tag=${release_tag}" >> $GITHUB_OUTPUT
