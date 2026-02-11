@@ -11,6 +11,10 @@ KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/m
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
 
+# Patch include paths for Kernel 6.6 compatibility
+# Change local include to kernel-tree include
+sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' ${DTS_DIR}/mt7981b-cmcc-xr30*
+
 # 2. Add Device definition to filogic.mk
 # We use a flattened definition to avoid complex FIT configurations that break some U-Boots.
 cat << 'EOF' >> target/linux/mediatek/image/filogic.mk

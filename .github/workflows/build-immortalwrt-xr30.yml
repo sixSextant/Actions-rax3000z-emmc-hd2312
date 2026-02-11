@@ -113,6 +113,8 @@ jobs:
       run: |
         [ -e files ] && mv files openwrt/files
         cat configs/xr30-emmc.config >> openwrt/.config
+        # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
+        sed -i 's/CONFIG_AUTOREMOVE=y/# CONFIG_AUTOREMOVE is not set/g' openwrt/.config
 
     - name: 设置是否使用 nx30pro eeprom
       if: env.USE_NX30PRO_EEPROM == 'true'
@@ -152,6 +154,8 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(($(nproc)+1)) thread compile"
+        # 优先编译 mac80211 以确保 mt76 编译成功
+        make package/kernel/mac80211/compile -j$(($(nproc)+1)) || true
         make -j$(($(nproc)+1)) || make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
