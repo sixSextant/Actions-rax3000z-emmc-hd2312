@@ -83,7 +83,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v2'
+        mixkey: 'openwrt24-cortexa53-v3'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -113,8 +113,6 @@ jobs:
       run: |
         [ -e files ] && mv files openwrt/files
         cat configs/xr30-emmc.config >> openwrt/.config
-        # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
-        sed -i 's/CONFIG_AUTOREMOVE=y/# CONFIG_AUTOREMOVE is not set/g' openwrt/.config
 
     - name: 设置是否使用 nx30pro eeprom
       if: env.USE_NX30PRO_EEPROM == 'true'
@@ -145,6 +143,10 @@ jobs:
         cd openwrt
         chmod +x $GITHUB_WORKSPACE/$CLASH_CORE && $GITHUB_WORKSPACE/$CLASH_CORE
         make defconfig
+        # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
+        sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
+        # 再次确保 defconfig 状态
+        make defconfig
         make download -j8 V=10
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -154,8 +156,9 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(($(nproc)+1)) thread compile"
-        # 优先编译 mac80211 以确保 mt76 编译成功
+        # 优先编译 mac80211 和 mt76 依赖以确保编译成功
         make package/kernel/mac80211/compile -j$(($(nproc)+1)) || true
+        make package/kernel/mt76/compile -j$(($(nproc)+1)) || true
         make -j$(($(nproc)+1)) || make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
