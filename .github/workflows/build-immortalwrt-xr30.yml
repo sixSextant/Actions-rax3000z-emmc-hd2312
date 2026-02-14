@@ -83,7 +83,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v3'
+        mixkey: 'openwrt24-cortexa53-v4'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -144,7 +144,7 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/$CLASH_CORE && $GITHUB_WORKSPACE/$CLASH_CORE
         make defconfig
         # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
-        sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
+        echo "CONFIG_AUTOREMOVE=n" >> .config
         # 再次确保 defconfig 状态
         make defconfig
         make download -j8 V=10
@@ -156,9 +156,6 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(($(nproc)+1)) thread compile"
-        # 优先编译 mac80211 和 mt76 依赖以确保编译成功
-        make package/kernel/mac80211/compile -j$(($(nproc)+1)) || true
-        make package/kernel/mt76/compile -j$(($(nproc)+1)) || true
         make -j$(($(nproc)+1)) || make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT
 
