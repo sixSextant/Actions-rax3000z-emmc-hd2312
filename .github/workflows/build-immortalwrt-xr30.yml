@@ -144,6 +144,7 @@ jobs:
         chmod +x $GITHUB_WORKSPACE/$CLASH_CORE && $GITHUB_WORKSPACE/$CLASH_CORE
         make defconfig
         # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
+        sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
         echo "CONFIG_AUTOREMOVE=n" >> .config
         # 再次确保 defconfig 状态
         make defconfig
