@@ -12,5 +12,7 @@ cp hd2312/openwrt/dvb.mk package/kernel/linux/modules/dvb.mk
 mkdir -p package/hd2312
 cp hd2312/openwrt/Makefile package/hd2312/Makefile
 
-# Enable HD2312 in generic kernel config (kernel 6.6)
-cat hd2312/openwrt/dvb-kconfig >> target/linux/generic/config-6.6
+# Enable HD2312 in generic kernel config (kernel 6.x)
+for f in target/linux/generic/config-6.*; do
+    [ -f "$f" ] && cat hd2312/openwrt/dvb-kconfig >> "$f"
+done
