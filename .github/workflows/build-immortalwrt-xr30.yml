@@ -48,7 +48,7 @@ jobs:
     - name: 扩展磁盘空间
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 5120
+        root-reserve-mb: 20480
         swap-size-mb: 1
         remove-dotnet: 'true'
         remove-android: 'true'
@@ -65,7 +65,7 @@ jobs:
       run: |
         echo "USE_NX30PRO_EEPROM=${{ github.event.inputs.USE_NX30PRO_EEPROM }}" >> $GITHUB_ENV
         echo "USE_52MHZ=${{ github.event.inputs.USE_52MHZ }}" >> $GITHUB_ENV
-        # 已移除 apt-get update 以合并入 scripts/environment.sh 以提高效率
+        # 使用 scripts/environment.sh 进行最小化依赖安装，避免 TeX 冲突和超时
         chmod +x $ENV_SH && $ENV_SH
         sudo timedatectl set-timezone "$TZ"
 
@@ -81,7 +81,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v5'
+        mixkey: 'openwrt24-cortexa53-v6'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -122,7 +122,9 @@ jobs:
 
     - name: 设置 dts 闪存频率
       run: |
-        DTS_FILE="openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts"
+        DTS_FILE=$(find openwrt/target/linux/mediatek/ -name "mt7981b-cmcc-xr30-emmc.dts" | head -n 1)
+        [ -z "$DTS_FILE" ] && echo "DTS file not found" && exit 1
+        echo "Found DTS: $DTS_FILE"
         if [ "${{ github.event.inputs.USE_52MHZ }}" = "true" ]; then
           # 确保是 52MHz
           sed -i 's/26000000/52000000/g' $DTS_FILE
@@ -144,7 +146,7 @@ jobs:
         # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
         sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
         grep -q "CONFIG_AUTOREMOVE=n" .config || echo "CONFIG_AUTOREMOVE=n" >> .config
-        # 再次确保 defconfig 状态
+        # 再次确保配置生效
         make defconfig
         make download -j8 V=10
         find dl -size -1024c -exec ls -l {} \;
@@ -201,7 +203,8 @@ jobs:
           echo "- eeprom 未修改" >> release.txt
           eeprom_status="default_eeprom"
         fi
-        max_frequency_val=$(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts || echo "26000000")
+        DTS_FILE=$(find openwrt/target/linux/mediatek/ -name "mt7981b-cmcc-xr30-emmc.dts" | head -n 1)
+        max_frequency_val=$(grep -oP "max-frequency = <\K[0-9]*" "$DTS_FILE" || echo "26000000")
         max_frequency=$((max_frequency_val / 1000000))
         echo "- 使用闪存频率: ${max_frequency}MHz" >> release.txt
         release_tag=$(date +"%Y.%m.%d-24.10-xr30-emmc-${eeprom_status}-${max_frequency}MHz")

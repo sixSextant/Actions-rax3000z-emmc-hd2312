@@ -21,9 +21,9 @@ CLASH_TUN_URL="https://github.com/vernesong/OpenClash/raw/core/dev/premium/clash
 # Meta内核版本
 CLASH_META_URL="https://github.com/vernesong/OpenClash/raw/core/dev/meta/clash-linux-arm64.tar.gz"
 
-wget -qO- $CLASH_DEV_URL | gunzip -c > files/etc/openclash/core/clash
+wget -qO- $CLASH_DEV_URL | tar -xOzf - > files/etc/openclash/core/clash
 wget -qO- $CLASH_TUN_URL | gunzip -c > files/etc/openclash/core/clash_tun
-wget -qO- $CLASH_META_URL | gunzip -c > files/etc/openclash/core/clash_meta
+wget -qO- $CLASH_META_URL | tar -xOzf - > files/etc/openclash/core/clash_meta
 # 给内核权限
 chmod +x files/etc/openclash/core/clash*
 
