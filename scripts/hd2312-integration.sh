@@ -3,16 +3,29 @@
 # This script is called from the 'openwrt' directory
 
 # Clone HD2312 driver source
-git clone https://github.com/hanwckf/hd2312
+if [ ! -d "hd2312" ]; then
+    git clone --depth 1 https://github.com/hanwckf/hd2312
+fi
 
 # Setup DVB core and USB support modules definition
-cp hd2312/openwrt/dvb.mk package/kernel/linux/modules/dvb.mk
+# Using -n to avoid overwriting if the user has custom ones, or just overwrite if it's the expected way
+cp -f hd2312/openwrt/dvb.mk package/kernel/linux/modules/dvb.mk
 
 # Setup HD2312 package definition
 mkdir -p package/hd2312
-cp hd2312/openwrt/Makefile package/hd2312/Makefile
+cp -f hd2312/openwrt/Makefile package/hd2312/Makefile
 
-# Enable HD2312 in generic kernel config (kernel 6.x)
+# Enable HD2312 in kernel configs (kernel 6.x)
+# Apply to generic configs
 for f in target/linux/generic/config-6.*; do
-    [ -f "$f" ] && cat hd2312/openwrt/dvb-kconfig >> "$f"
+    if [ -f "$f" ]; then
+        grep -q "CONFIG_DVB_HD2312" "$f" || cat hd2312/openwrt/dvb-kconfig >> "$f"
+    fi
+done
+
+# Apply to mediatek target configs
+for f in target/linux/mediatek/filogic/config-6.*; do
+    if [ -f "$f" ]; then
+        grep -q "CONFIG_DVB_HD2312" "$f" || cat hd2312/openwrt/dvb-kconfig >> "$f"
+    fi
 done
