@@ -45,18 +45,24 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: 检查
+      uses: actions/checkout@main
+
+    - name: 清理磁盘空间
+      run: |
+        chmod +x $FREE_DISK_SH
+        $FREE_DISK_SH
+
     - name: 扩展磁盘空间
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 61440
+        root-reserve-mb: 30720
         swap-size-mb: 1
-        remove-dotnet: 'true'
-        remove-android: 'true'
-        remove-haskell: 'true'
-        remove-codeql: 'true'
-
-    - name: 检查
-      uses: actions/checkout@main
+        remove-dotnet: 'false'
+        remove-android: 'false'
+        remove-haskell: 'false'
+        remove-codeql: 'false'
+        remove-docker-images: 'true'
 
     - name: 初始化环境
       timeout-minutes: 30

@@ -19,13 +19,19 @@ cp -f hd2312/openwrt/Makefile package/hd2312/Makefile
 # Apply to generic configs
 for f in target/linux/generic/config-6.*; do
     if [ -f "$f" ]; then
-        grep -q "CONFIG_DVB_HD2312" "$f" || cat hd2312/openwrt/dvb-kconfig >> "$f"
+        if ! grep -q "CONFIG_DVB_HD2312" "$f"; then
+            echo "" >> "$f"
+            cat hd2312/openwrt/dvb-kconfig >> "$f"
+        fi
     fi
 done
 
 # Apply to mediatek target configs
 for f in target/linux/mediatek/filogic/config-6.*; do
     if [ -f "$f" ]; then
-        grep -q "CONFIG_DVB_HD2312" "$f" || cat hd2312/openwrt/dvb-kconfig >> "$f"
+        if ! grep -q "CONFIG_DVB_HD2312" "$f"; then
+            echo "" >> "$f"
+            cat hd2312/openwrt/dvb-kconfig >> "$f"
+        fi
     fi
 done

@@ -51,4 +51,7 @@ sudo rm -rf /usr/local/share/powershell
 sudo rm -rf /usr/local/share/chromium
 sudo rm -rf /usr/local/lib/android
 sudo rm -rf /usr/local/lib/node_modules
+sudo rm -rf /opt/ghc
+sudo rm -rf /opt/hostedtoolcache/CodeQL
+sudo rm -rf /usr/lib/jvm
 df -h
