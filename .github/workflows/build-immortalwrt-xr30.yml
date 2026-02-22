@@ -59,15 +59,13 @@ jobs:
       uses: actions/checkout@main
 
     - name: 初始化环境
+      timeout-minutes: 30
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         echo "USE_NX30PRO_EEPROM=${{ github.event.inputs.USE_NX30PRO_EEPROM }}" >> $GITHUB_ENV
         echo "USE_52MHZ=${{ github.event.inputs.USE_52MHZ }}" >> $GITHUB_ENV
-        # 使用 maximize-build-space 后不再需要手动清理，避免冗余 I/O
-        # chmod +x $FREE_DISK_SH && $FREE_DISK_SH
-        sudo -E apt-get -qq update -y
-        # 已移除 full-upgrade 以避免无关的 Snap/Firefox 更新报错
+        # 已移除 apt-get update 以合并入 scripts/environment.sh 以提高效率
         chmod +x $ENV_SH && $ENV_SH
         sudo timedatectl set-timezone "$TZ"
 
@@ -83,7 +81,7 @@ jobs:
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v4'
+        mixkey: 'openwrt24-cortexa53-v5'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -145,7 +143,7 @@ jobs:
         make defconfig
         # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
         sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
-        echo "CONFIG_AUTOREMOVE=n" >> .config
+        grep -q "CONFIG_AUTOREMOVE=n" .config || echo "CONFIG_AUTOREMOVE=n" >> .config
         # 再次确保 defconfig 状态
         make defconfig
         make download -j8 V=10
