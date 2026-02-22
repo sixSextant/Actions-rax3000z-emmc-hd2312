@@ -45,39 +45,43 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+    - name: 扩展磁盘空间
+      uses: easimon/maximize-build-space@master
+      with:
+        root-reserve-mb: 5120
+        swap-size-mb: 1
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
+
     - name: 检查
       uses: actions/checkout@main
 
     - name: 初始化环境
+      timeout-minutes: 30
       env:
         DEBIAN_FRONTEND: noninteractive
       run: |
         echo "USE_NX30PRO_EEPROM=${{ github.event.inputs.USE_NX30PRO_EEPROM }}" >> $GITHUB_ENV
         echo "USE_52MHZ=${{ github.event.inputs.USE_52MHZ }}" >> $GITHUB_ENV
-        chmod +x $FREE_DISK_SH && $FREE_DISK_SH
-        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
-        sudo -E apt-get -qq update -y
-        # 已移除 full-upgrade 以避免无关的 Snap/Firefox 更新报错
+        # 已移除 apt-get update 以合并入 scripts/environment.sh 以提高效率
         chmod +x $ENV_SH && $ENV_SH
         sudo timedatectl set-timezone "$TZ"
-        sudo mkdir -p /workdir
-        sudo chown $USER:$GROUPS /workdir
 
     - name: 检查空间使用情况
       if: (!cancelled())
       run: df -hT
 
     - name: 克隆源码
-      working-directory: /workdir
       run: |
-        git clone $REPO_URL -b $REPO_BRANCH openwrt
-        ln -sf /workdir/openwrt $GITHUB_WORKSPACE/openwrt
+        for i in {1..3}; do git clone $REPO_URL -b $REPO_BRANCH openwrt && break || sleep 5; done
 
     - name: 开启缓存
       uses: klever1988/cachewrtbuild@main
       with:
         ccache: 'true'
-        mixkey: 'openwrt24-cortexa53-v2'
+        mixkey: 'openwrt24-cortexa53-v5'
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
@@ -137,6 +141,11 @@ jobs:
         cd openwrt
         chmod +x $GITHUB_WORKSPACE/$CLASH_CORE && $GITHUB_WORKSPACE/$CLASH_CORE
         make defconfig
+        # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
+        sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
+        grep -q "CONFIG_AUTOREMOVE=n" .config || echo "CONFIG_AUTOREMOVE=n" >> .config
+        # 再次确保 defconfig 状态
+        make defconfig
         make download -j8 V=10
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
@@ -192,7 +201,8 @@ jobs:
           echo "- eeprom 未修改" >> release.txt
           eeprom_status="default_eeprom"
         fi
-        max_frequency=$(($(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts) / 1000000))
+        max_frequency_val=$(grep -oP "max-frequency = <\K[0-9]*" openwrt/target/linux/mediatek/dts/mt7981b-cmcc-xr30-emmc.dts || echo "26000000")
+        max_frequency=$((max_frequency_val / 1000000))
         echo "- 使用闪存频率: ${max_frequency}MHz" >> release.txt
         release_tag=$(date +"%Y.%m.%d-24.10-xr30-emmc-${eeprom_status}-${max_frequency}MHz")
         echo "release_tag=${release_tag}" >> $GITHUB_OUTPUT
