@@ -45,24 +45,19 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: 检查
-      uses: actions/checkout@main
-
-    - name: 清理磁盘空间
-      run: |
-        chmod +x $FREE_DISK_SH
-        $FREE_DISK_SH
-
     - name: 扩展磁盘空间
       uses: easimon/maximize-build-space@master
       with:
-        root-reserve-mb: 30720
+        root-reserve-mb: 24576
         swap-size-mb: 1
-        remove-dotnet: 'false'
-        remove-android: 'false'
-        remove-haskell: 'false'
-        remove-codeql: 'false'
+        remove-dotnet: 'true'
+        remove-android: 'true'
+        remove-haskell: 'true'
+        remove-codeql: 'true'
         remove-docker-images: 'true'
+
+    - name: 检查
+      uses: actions/checkout@main
 
     - name: 初始化环境
       timeout-minutes: 30
@@ -92,9 +87,9 @@ jobs:
         prefix: ${{ github.workspace }}/openwrt
 
     - name: 更新 & 安装 feeds & 执行脚本
+      working-directory: openwrt
       run: |
-        cd openwrt
-        chmod +x $GITHUB_WORKSPACE/$DIY_SH && $GITHUB_WORKSPACE/$DIY_SH
+        chmod +x ../$DIY_SH && ../$DIY_SH
         # Retry feeds update up to 3 times to handle network issues
         for i in {1..3}; do ./scripts/feeds update -a && break || sleep 5; done
 
@@ -105,14 +100,14 @@ jobs:
         ./scripts/feeds install -a
 
     - name: 集成 HD2312 驱动
+      working-directory: openwrt
       run: |
-        cd openwrt
-        chmod +x $GITHUB_WORKSPACE/$HD2312_SH && $GITHUB_WORKSPACE/$HD2312_SH
+        chmod +x ../$HD2312_SH && ../$HD2312_SH
 
     - name: 集成 XR30 适配 (来自 Kiddin9)
+      working-directory: openwrt
       run: |
-        cd openwrt
-        chmod +x $GITHUB_WORKSPACE/$XR30_SH && $GITHUB_WORKSPACE/$XR30_SH
+        chmod +x ../$XR30_SH && ../$XR30_SH
 
     - name: 导入补丁和配置
       run: |
@@ -146,9 +141,9 @@ jobs:
         grep max-frequency $DTS_FILE
 
     - name: 下载文件
+      working-directory: openwrt
       run: |
-        cd openwrt
-        chmod +x $GITHUB_WORKSPACE/$CLASH_CORE && $GITHUB_WORKSPACE/$CLASH_CORE
+        chmod +x ../$CLASH_CORE && ../$CLASH_CORE
         make defconfig
         # 强制关闭 AUTOREMOVE 以防止 mt76 编译时找不到 mac80211 的头文件
         sed -i 's/CONFIG_AUTOREMOVE=y/CONFIG_AUTOREMOVE=n/g' .config
@@ -161,8 +156,8 @@ jobs:
 
     - name: 编译固件中
       id: compile
+      working-directory: openwrt
       run: |
-        cd openwrt
         echo -e "$(($(nproc)+1)) thread compile"
         make -j$(($(nproc)+1)) || make -j$(nproc) || make -j1 V=s
         echo "status=success" >> $GITHUB_OUTPUT

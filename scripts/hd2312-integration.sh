@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This script is called from the 'openwrt' directory
 

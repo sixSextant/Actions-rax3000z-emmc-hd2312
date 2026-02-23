@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # This script integrates XR30 eMMC support using Kiddin9's device definitions
 # which are more complete for Kernel 6.6.
@@ -15,22 +16,33 @@ fi
 mkdir -p ${DTS_DIR}
 KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
-wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts || echo "Failed to download xr30-emmc.dts"
-wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi || echo "Failed to download xr30.dtsi"
+# Download the main DTS file
+wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 
-if [ ! -s "${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts" ]; then
-    echo "Warning: mt7981b-cmcc-xr30-emmc.dts is empty or not found"
+# Download the DTSI file (try both naming conventions if necessary)
+if wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi; then
+    DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30.dtsi"
+elif wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dtsi; then
+    DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dtsi"
+else
+    echo "Warning: Could not download mt7981b-cmcc-xr30.dtsi or mt7981b-cmcc-xr30-emmc.dtsi"
 fi
 
-# Patch DTS/DTSI for compatibility
-# Remove duplicate /dts-v1/ from DTSI
-sed -i '/\/dts-v1\/;/d' ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
-# Fix mt7981.dtsi include path for Kernel 6.6
-sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi
+if [ ! -s "${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts" ]; then
+    echo "Error: mt7981b-cmcc-xr30-emmc.dts is empty or not found"
+    exit 1
+fi
+
+# Patch DTSI for compatibility if it exists
+if [ -n "$DTSI_FILE" ] && [ -f "$DTSI_FILE" ]; then
+    # Remove duplicate /dts-v1/ from DTSI
+    sed -i '/\/dts-v1\/;/d' "$DTSI_FILE"
+    # Fix mt7981.dtsi include path for Kernel 6.6
+    sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' "$DTSI_FILE"
+fi
 
 # 2. Add Device definition to filogic.mk
 # We inherit from cmcc_rax3000m which is very similar to XR30.
-# We also include the ATF/U-Boot packages in DEVICE_PACKAGES to ensure they are built.
 cat << 'EOF' >> target/linux/mediatek/image/filogic.mk
 
 define Device/cmcc_xr30-emmc
