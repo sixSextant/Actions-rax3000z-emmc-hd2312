@@ -111,7 +111,7 @@ jobs:
 
     - name: 导入补丁和配置
       run: |
-        [ -e files ] && mv files openwrt/files
+        [ -d files ] && cp -r files/* openwrt/files/ 2>/dev/null || true
         cat configs/xr30-emmc.config >> openwrt/.config
 
     - name: 设置是否使用 nx30pro eeprom
