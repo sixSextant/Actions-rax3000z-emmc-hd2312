@@ -1,8 +1,14 @@
 #!/bin/bash
 set -ex
 export DEBIAN_FRONTEND=noninteractive
+
+# 清理缓存
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
 # Retry apt-get update to handle network issues
 for i in {1..3}; do sudo apt-get update && break || sleep 5; done
+
 sudo apt-get install -y --no-install-recommends \
     autoconf \
     automake \
@@ -55,3 +61,6 @@ sudo apt-get install -y --no-install-recommends \
     wget \
     xsltproc \
     zlib1g-dev
+
+# 再次清理以节省空间
+sudo apt-get clean

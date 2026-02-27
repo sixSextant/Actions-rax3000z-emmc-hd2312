@@ -19,13 +19,16 @@ KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/m
 # Download the main DTS file
 wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
 
-# Download the DTSI file (try both naming conventions if necessary)
-if wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30.dtsi; then
-    DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30.dtsi"
-elif wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dtsi -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dtsi; then
+# Download the DTSI file
+# Try to download the standard name first
+DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30.dtsi"
+if ! wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O "$DTSI_FILE"; then
+    echo "Warning: mt7981b-cmcc-xr30.dtsi not found, trying -emmc suffix"
     DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dtsi"
-else
-    echo "Warning: Could not download mt7981b-cmcc-xr30.dtsi or mt7981b-cmcc-xr30-emmc.dtsi"
+    if ! wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dtsi -O "$DTSI_FILE"; then
+         echo "Error: Could not download mt7981b-cmcc-xr30.dtsi or mt7981b-cmcc-xr30-emmc.dtsi"
+         exit 1
+    fi
 fi
 
 if [ ! -s "${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts" ]; then
@@ -33,8 +36,8 @@ if [ ! -s "${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts" ]; then
     exit 1
 fi
 
-# Patch DTSI for compatibility if it exists
-if [ -n "$DTSI_FILE" ] && [ -f "$DTSI_FILE" ]; then
+# Patch DTSI for compatibility
+if [ -f "$DTSI_FILE" ]; then
     # Remove duplicate /dts-v1/ from DTSI
     sed -i '/\/dts-v1\/;/d' "$DTSI_FILE"
     # Fix mt7981.dtsi include path for Kernel 6.6
