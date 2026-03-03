@@ -5,43 +5,55 @@ set -e
 # which are more complete for Kernel 6.6.
 
 # 1. Download DTS files from Kiddin9's Kwrt repository
-# The correct location is the kernel overlay directory.
+# The image builder expects DTS files in target/linux/mediatek/dts/
+DTS_DIR_IMAGE="target/linux/mediatek/dts"
+# The kernel builder might also look in the overlay directory
 if [ -d "target/linux/mediatek/files-6.6" ]; then
-    DTS_DIR="target/linux/mediatek/files-6.6/arch/arm64/boot/dts/mediatek"
+    DTS_DIR_KERNEL="target/linux/mediatek/files-6.6/arch/arm64/boot/dts/mediatek"
 elif [ -d "target/linux/mediatek/files-6.1" ]; then
-    DTS_DIR="target/linux/mediatek/files-6.1/arch/arm64/boot/dts/mediatek"
+    DTS_DIR_KERNEL="target/linux/mediatek/files-6.1/arch/arm64/boot/dts/mediatek"
 else
-    DTS_DIR="target/linux/mediatek/files/arch/arm64/boot/dts/mediatek"
+    DTS_DIR_KERNEL="target/linux/mediatek/files/arch/arm64/boot/dts/mediatek"
 fi
-mkdir -p ${DTS_DIR}
+
+mkdir -p ${DTS_DIR_IMAGE}
+mkdir -p ${DTS_DIR_KERNEL}
+
 KIDDIN9_DTS_URL="https://raw.githubusercontent.com/kiddin9/Kwrt/master/devices/mediatek_filogic/diy/target/linux/mediatek/dts"
 
-# Download the main DTS file
-wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dts -O ${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts
+# Function to download and patch
+setup_dts() {
+    local file=$1
+    local dest_dir=$2
+    local is_dtsi=$3
 
-# Download the DTSI file
-# Try to download the standard name first
-DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30.dtsi"
-if ! wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi -O "$DTSI_FILE"; then
-    echo "Warning: mt7981b-cmcc-xr30.dtsi not found, trying -emmc suffix"
-    DTSI_FILE="${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dtsi"
-    if ! wget -q ${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dtsi -O "$DTSI_FILE"; then
-         echo "Error: Could not download mt7981b-cmcc-xr30.dtsi or mt7981b-cmcc-xr30-emmc.dtsi"
-         exit 1
+    wget -q "${KIDDIN9_DTS_URL}/${file}" -O "${dest_dir}/${file}"
+    if [ ! -s "${dest_dir}/${file}" ]; then
+        echo "Error: ${file} is empty or not found"
+        return 1
     fi
-fi
 
-if [ ! -s "${DTS_DIR}/mt7981b-cmcc-xr30-emmc.dts" ]; then
-    echo "Error: mt7981b-cmcc-xr30-emmc.dts is empty or not found"
+    # Patch for Kernel 6.6 compatibility
+    if [ "$is_dtsi" = "true" ]; then
+        sed -i '/\/dts-v1\/;/d' "${dest_dir}/${file}"
+        sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' "${dest_dir}/${file}"
+    fi
+}
+
+# Download and setup for both directories
+setup_dts "mt7981b-cmcc-xr30-emmc.dts" "${DTS_DIR_IMAGE}" "false"
+setup_dts "mt7981b-cmcc-xr30-emmc.dts" "${DTS_DIR_KERNEL}" "false"
+
+# Handle DTSI (try both names)
+if wget -q "${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30.dtsi" -O "${DTS_DIR_IMAGE}/mt7981b-cmcc-xr30.dtsi"; then
+    setup_dts "mt7981b-cmcc-xr30.dtsi" "${DTS_DIR_IMAGE}" "true"
+    cp "${DTS_DIR_IMAGE}/mt7981b-cmcc-xr30.dtsi" "${DTS_DIR_KERNEL}/mt7981b-cmcc-xr30.dtsi"
+elif wget -q "${KIDDIN9_DTS_URL}/mt7981b-cmcc-xr30-emmc.dtsi" -O "${DTS_DIR_IMAGE}/mt7981b-cmcc-xr30-emmc.dtsi"; then
+    setup_dts "mt7981b-cmcc-xr30-emmc.dtsi" "${DTS_DIR_IMAGE}" "true"
+    cp "${DTS_DIR_IMAGE}/mt7981b-cmcc-xr30-emmc.dtsi" "${DTS_DIR_KERNEL}/mt7981b-cmcc-xr30-emmc.dtsi"
+else
+    echo "Error: Could not download DTSI file"
     exit 1
-fi
-
-# Patch DTSI for compatibility
-if [ -f "$DTSI_FILE" ]; then
-    # Remove duplicate /dts-v1/ from DTSI
-    sed -i '/\/dts-v1\/;/d' "$DTSI_FILE"
-    # Fix mt7981.dtsi include path for Kernel 6.6
-    sed -i 's/#include "mt7981.dtsi"/#include <arm64\/mediatek\/mt7981.dtsi>/g' "$DTSI_FILE"
 fi
 
 # 2. Add Device definition to filogic.mk
