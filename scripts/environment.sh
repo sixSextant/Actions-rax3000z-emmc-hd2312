@@ -1,8 +1,66 @@
-sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-  bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-  g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
-  libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5 \
-  libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool lld llvm lrzsz mkisofs msmtp \
-  nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pip python3-ply \
-  python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig \
-  texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+#!/bin/bash
+set -ex
+export DEBIAN_FRONTEND=noninteractive
+
+# 清理缓存
+sudo apt-get clean
+sudo rm -rf /var/lib/apt/lists/*
+
+# Retry apt-get update to handle network issues
+for i in {1..3}; do sudo apt-get update && break || sleep 5; done
+
+sudo apt-get install -y --no-install-recommends \
+    autoconf \
+    automake \
+    bc \
+    binutils \
+    bison \
+    build-essential \
+    bzip2 \
+    ccache \
+    cmake \
+    cpio \
+    curl \
+    device-tree-compiler \
+    file \
+    flex \
+    g++-multilib \
+    gawk \
+    gcc-multilib \
+    gengetopt \
+    gettext \
+    git \
+    git-core \
+    gperf \
+    jq \
+    libc6-dev-i386 \
+    libelf-dev \
+    libncurses-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libssl-dev \
+    libtool \
+    libxml-parser-perl \
+    lzma \
+    patch \
+    perl \
+    pkg-config \
+    python3 \
+    python3-dev \
+    python3-pip \
+    python3-pyelftools \
+    python3-setuptools \
+    python3-yaml \
+    qemu-utils \
+    rsync \
+    squashfs-tools \
+    subversion \
+    swig \
+    time \
+    unzip \
+    wget \
+    xsltproc \
+    zlib1g-dev
+
+# 再次清理以节省空间
+sudo apt-get clean
